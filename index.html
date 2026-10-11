@@ -1,0 +1,719 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111827">
+<title>Brain Battle Quiz</title>
+
+<style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 18px;
+  font-family: Arial, sans-serif;
+  background: #111827;
+  color: white;
+}
+
+.app {
+  max-width: 500px;
+  margin: auto;
+}
+
+header {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.logo {
+  font-size: 48px;
+}
+
+h1 {
+  margin: 8px 0;
+  color: #a5b4fc;
+}
+
+p {
+  color: #cbd5e1;
+  line-height: 1.5;
+}
+
+.panel {
+  background: #1f2937;
+  padding: 18px;
+  border-radius: 18px;
+  margin: 15px 0;
+}
+
+label {
+  display: block;
+  margin: 15px 0 7px;
+  color: #cbd5e1;
+}
+
+select, button {
+  width: 100%;
+  padding: 13px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+select {
+  background: #374151;
+  color: white;
+}
+
+button {
+  background: #6366f1;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+}
+
+button:disabled {
+  cursor: default;
+  opacity: 0.8;
+}
+
+button.secondary {
+  background: #374151;
+}
+
+button.option {
+  background: #374151;
+  border: 2px solid #4b5563;
+  text-align: left;
+  margin: 6px 0;
+}
+
+button.correct {
+  background: #166534;
+  border-color: #4ade80;
+}
+
+button.wrong {
+  background: #991b1b;
+  border-color: #f87171;
+}
+
+.hidden {
+  display: none;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.stat {
+  background: #374151;
+  padding: 10px;
+  border-radius: 10px;
+  text-align: center;
+  flex: 1;
+  font-size: 14px;
+}
+
+#question {
+  font-size: 20px;
+  line-height: 1.5;
+}
+
+.bar {
+  background: #374151;
+  height: 8px;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+#progress {
+  width: 0;
+  height: 100%;
+  background: #818cf8;
+  transition: width 0.2s;
+}
+
+#feedback {
+  line-height: 1.5;
+  font-weight: bold;
+}
+
+.small {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.review-item {
+  border-top: 1px solid #374151;
+  padding: 12px 0;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+
+<header>
+  <div class="logo">🧠⚡</div>
+  <h1>Brain Battle</h1>
+  <p>Challenge your brain. Beat your best score!</p>
+</header>
+
+<!-- HOME SCREEN -->
+<section id="home" class="panel">
+  <h2>Ready to play? 🎮</h2>
+  <p>Choose your category and difficulty.</p>
+
+  <label for="category">Quiz Category</label>
+  <select id="category">
+    <option value="All">All Categories</option>
+    <option value="C Programming">C Programming</option>
+    <option value="C++">C++</option>
+    <option value="Computer">Computer Basics</option>
+    <option value="GK">General Knowledge</option>
+  </select>
+
+  <label for="difficulty">Difficulty</label>
+  <select id="difficulty">
+    <option value="Easy">Easy</option>
+    <option value="Medium">Medium</option>
+    <option value="Hard">Hard</option>
+  </select>
+
+  <button onclick="startGame()">Start Quiz 🚀</button>
+
+  <p class="small">10 points for every correct answer.
+  Each question has a 15-second limit.</p>
+
+  <p id="bestScore">Best score: 0</p>
+</section>
+
+<!-- GAME SCREEN -->
+<section id="game" class="panel hidden">
+
+  <div class="stats">
+    <div class="stat">
+      <div class="small">QUESTION</div>
+      <strong id="questionCount">1/10</strong>
+    </div>
+    <div class="stat">
+      <div class="small">SCORE</div>
+      <strong id="score">0</strong>
+    </div>
+    <div class="stat">
+      <div class="small">TIME</div>
+      <strong id="timer">15s</strong>
+    </div>
+  </div>
+
+  <div class="bar">
+    <div id="progress"></div>
+  </div>
+
+  <p id="categoryLabel" class="small"></p>
+  <h2 id="question">Question appears here</h2>
+
+  <div id="options"></div>
+
+  <p id="feedback" aria-live="polite"></p>
+
+  <button id="nextBtn" class="hidden"
+    onclick="nextQuestion()">Next Question ➜</button>
+</section>
+
+<!-- RESULT SCREEN -->
+<section id="result" class="panel hidden">
+  <h2 id="resultTitle">Quiz Complete! 🏆</h2>
+  <p id="resultMessage"></p>
+  <h1 id="finalScore">0 / 100</h1>
+  <p id="accuracy"></p>
+
+  <button onclick="showReview()">Review Answers 📖</button>
+  <div id="review" class="hidden"></div>
+
+  <button onclick="goHome()" class="secondary">
+    Play Again 🔄
+  </button>
+</section>
+
+</div>
+
+<script>
+// QUIZ QUESTIONS
+const questions = [
+  {
+    category: "C Programming",
+    difficulty: "Easy",
+    q: "Which function displays output in C?",
+    options: ["scanf()", "printf()", "main()", "return()"],
+    answer: 1,
+    explanation: "printf() displays formatted output."
+  },
+  {
+    category: "C Programming",
+    difficulty: "Easy",
+    q: "Which symbol ends a normal C statement?",
+    options: [":", ".", ";", ","],
+    answer: 2,
+    explanation: "A semicolon ends a normal C statement."
+  },
+  {
+    category: "C Programming",
+    difficulty: "Easy",
+    q: "Which data type stores a whole number?",
+    options: ["int", "char", "void", "float"],
+    answer: 0,
+    explanation: "int is used for integer values."
+  },
+  {
+    category: "C Programming",
+    difficulty: "Medium",
+    q: "What is the output of printf(\"%d\", 5 + 3)?",
+    options: ["53", "8", "5 + 3", "Error"],
+    answer: 1,
+    explanation: "5 + 3 equals 8."
+  },
+  {
+    category: "C Programming",
+    difficulty: "Medium",
+    q: "Which loop executes its body at least once?",
+    options: ["for", "while", "do-while", "None"],
+    answer: 2,
+    explanation: "A do-while loop checks its condition after the body."
+  },
+  {
+    category: "C Programming",
+    difficulty: "Hard",
+    q: "In C, array indexing normally starts at which index?",
+    options: ["-1", "0", "1", "Depends on array size"],
+    answer: 1,
+    explanation: "The first element of a C array has index 0."
+  },
+  {
+    category: "C++",
+    difficulty: "Easy",
+    q: "Which operator is commonly used with cout to display output?",
+    options: ["<<", ">>", "&&", "!="],
+    answer: 0,
+    explanation: "The insertion operator << sends data to cout."
+  },
+  {
+    category: "C++",
+    difficulty: "Easy",
+    q: "Which keyword creates a class in C++?",
+    options: ["structonly", "object", "class", "define"],
+    answer: 2,
+    explanation: "The class keyword declares a class."
+  },
+  {
+    category: "C++",
+    difficulty: "Medium",
+    q: "Which OOP concept allows the same function name with different parameter lists?",
+    options: ["Inheritance", "Overloading", "Encapsulation", "Abstraction"],
+    answer: 1,
+    explanation: "Function overloading uses different parameter lists."
+  },
+  {
+    category: "C++",
+    difficulty: "Hard",
+    q: "Which symbol is used to access a member through an object pointer?",
+    options: [".", "::", "->", "&"],
+    answer: 2,
+    explanation: "The arrow operator -> accesses members through a pointer."
+  },
+  {
+    category: "Computer",
+    difficulty: "Easy",
+    q: "Which component is often called the brain of a computer?",
+    options: ["Monitor", "CPU", "Keyboard", "Mouse"],
+    answer: 1,
+    explanation: "The CPU executes instructions and processes data."
+  },
+  {
+    category: "Computer",
+    difficulty: "Easy",
+    q: "Which of these is an input device?",
+    options: ["Monitor", "Speaker", "Keyboard", "Projector"],
+    answer: 2,
+    explanation: "A keyboard sends input to a computer."
+  },
+  {
+    category: "Computer",
+    difficulty: "Medium",
+    q: "Which memory usually loses its contents when power is off?",
+    options: ["ROM", "RAM", "SSD", "Hard disk"],
+    answer: 1,
+    explanation: "RAM is volatile memory."
+  },
+  {
+    category: "Computer",
+    difficulty: "Medium",
+    q: "What does URL stand for?",
+    options: [
+      "Uniform Resource Locator",
+      "Universal Record Link",
+      "User Reference List",
+      "Unified Routing Line"
+    ],
+    answer: 0,
+    explanation: "URL stands for Uniform Resource Locator."
+  },
+  {
+    category: "Computer",
+    difficulty: "Hard",
+    q: "Which number system uses only 0 and 1?",
+    options: ["Decimal", "Octal", "Binary", "Hexadecimal"],
+    answer: 2,
+    explanation: "Binary is a base-2 number system."
+  },
+  {
+    category: "GK",
+    difficulty: "Easy",
+    q: "What is the capital of India?",
+    options: ["Mumbai", "New Delhi", "Kolkata", "Chennai"],
+    answer: 1,
+    explanation: "New Delhi is the capital of India."
+  },
+  {
+    category: "GK",
+    difficulty: "Easy",
+    q: "Which planet is known as the Red Planet?",
+    options: ["Venus", "Jupiter", "Mars", "Mercury"],
+    answer: 2,
+    explanation: "Iron-rich dust gives Mars its reddish appearance."
+  },
+  {
+    category: "GK",
+    difficulty: "Medium",
+    q: "How many sides does a hexagon have?",
+    options: ["Five", "Six", "Seven", "Eight"],
+    answer: 1,
+    explanation: "A hexagon has six sides."
+  },
+  {
+    category: "GK",
+    difficulty: "Medium",
+    q: "Which gas do plants absorb during photosynthesis?",
+    options: ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"],
+    answer: 2,
+    explanation: "Plants use carbon dioxide during photosynthesis."
+  },
+  {
+    category: "GK",
+    difficulty: "Hard",
+    q: "Which is the largest ocean on Earth?",
+    options: [
+      "Atlantic Ocean",
+      "Indian Ocean",
+      "Arctic Ocean",
+      "Pacific Ocean"
+    ],
+    answer: 3,
+    explanation: "The Pacific Ocean is the largest ocean."
+  },
+  
+{
+  category: "C Programming",
+  difficulty: "Easy",
+  question: "Which symbol ends a statement in C?",
+  options: [":", ";", ",", "."],
+  answer: 1
+},
+{
+  category: "C Programming",
+  difficulty: "Easy",
+  question: "Which function is used to display output in C?",
+  options: ["scanf()", "main()", "printf()", "input()"],
+  answer: 2
+},
+{
+  category: "C Programming",
+  difficulty: "Easy",
+  question: "Which data type stores a whole number in C?",
+  options: ["int", "float", "char", "void"],
+  answer: 0
+},
+{
+  category: "C++",
+  difficulty: "Easy",
+  question: "Which symbol is used for single-line comments in C++?",
+  options: ["<!-- -->", "//", "**", "##"],
+  answer: 1
+},
+{
+  category: "Computer",
+  difficulty: "Easy",
+  question: "What is the brain of a computer called?",
+  options: ["RAM", "Monitor", "CPU", "Keyboard"],
+  answer: 2
+},
+{
+  category: "Computer",
+  difficulty: "Easy",
+  question: "Which device is used to type text?",
+  options: ["Mouse", "Keyboard", "Monitor", "Speaker"],
+  answer: 1
+},
+{
+  category: "GK",
+  difficulty: "Easy",
+  question: "What is the capital of India?",
+  options: ["Mumbai", "Patna", "New Delhi", "Kolkata"],
+  answer: 2
+},
+{
+  category: "GK",
+  difficulty: "Easy",
+  question: "Which planet is known as the Red Planet?",
+  options: ["Earth", "Mars", "Venus", "Jupiter"],
+  answer: 1
+}
+
+];
+
+let quiz = [];
+let current = 0;
+let points = 0;
+let timeLeft = 15;
+let timerId = null;
+let locked = false;
+let history = [];
+
+// GET ELEMENTS
+const $ = id => document.getElementById(id);
+
+function showScreen(screen) {
+  ["home", "game", "result"].forEach(id => {
+    $(id).classList.toggle("hidden", id !== screen);
+  });
+}
+
+function updateBestScore() {
+  let best = Number(localStorage.getItem("brainBest") || 0);
+  $("bestScore").textContent = "Best score: " + best;
+}
+
+function startGame() {
+  const category = $("category").value;
+  const difficulty = $("difficulty").value;
+
+  quiz = questions.filter(q =>
+    (category === "All" || q.category === category) &&
+    q.difficulty === difficulty
+  );
+
+  // If fewer than 5 questions match, include all
+  // questions in the selected category.
+  if (quiz.length < 5) {
+    quiz = questions.filter(q =>
+      category === "All" || q.category === category
+    );
+  }
+
+  // Shuffle question order.
+  quiz = [...quiz].sort(() => Math.random() - 0.5);
+  quiz = quiz.slice(0, 10);
+
+  if (quiz.length === 0) {
+    alert("No questions found!");
+    return;
+  }
+
+  current = 0;
+  points = 0;
+  history = [];
+
+  $("review").classList.add("hidden");
+  showScreen("game");
+  renderQuestion();
+}
+
+function renderQuestion() {
+  clearInterval(timerId);
+  locked = false;
+  timeLeft = 15;
+
+  const q = quiz[current];
+
+  $("questionCount").textContent =
+    (current + 1) + "/" + quiz.length;
+  $("score").textContent = points;
+  $("timer").textContent = timeLeft + "s";
+  $("progress").style.width =
+    (current / quiz.length * 100) + "%";
+
+  $("categoryLabel").textContent =
+    q.category + " • " + q.difficulty;
+
+  $("question").textContent = q.q || "Question loading...";
+$("question").style.display = "block";
+  $("feedback").textContent = "";
+  $("nextBtn").classList.add("hidden");
+
+  const options = $("options");
+  options.innerHTML = "";
+
+  q.options.forEach((option, index) => {
+    const button = document.createElement("button");
+    button.className = "option";
+    button.textContent =
+      String.fromCharCode(65 + index) + ". " + option;
+
+    button.onclick = () => selectAnswer(index, false);
+    options.appendChild(button);
+  });
+
+  timerId = setInterval(() => {
+    timeLeft--;
+    $("timer").textContent = timeLeft + "s";
+
+    if (timeLeft <= 0) {
+      selectAnswer(-1, true);
+    }
+  }, 1000);
+}
+
+function selectAnswer(index, timedOut) {
+  if (locked) return;
+
+  locked = true;
+  clearInterval(timerId);
+
+  const q = quiz[current];
+  const buttons = $("options").querySelectorAll("button");
+  const correct = index === q.answer;
+
+  if (correct) points += 10;
+
+  buttons.forEach((button, i) => {
+    button.disabled = true;
+
+    if (i === q.answer) {
+      button.classList.add("correct");
+    } else if (i === index) {
+      button.classList.add("wrong");
+    }
+  });
+
+  $("score").textContent = points;
+
+  if (correct) {
+    $("feedback").textContent =
+      "✅ Correct! +10 points. " + q.explanation;
+  } else if (timedOut) {
+    $("feedback").textContent =
+      "⏰ Time's up! " + q.explanation;
+  } else {
+    $("feedback").textContent =
+      "❌ Incorrect. " + q.explanation;
+  }
+
+  history.push({
+    question: q.q,
+    chosen: index < 0 ? "No answer" : q.options[index],
+    correct: q.options[q.answer],
+    wasCorrect: correct
+  });
+
+  $("nextBtn").textContent =
+    current === quiz.length - 1
+      ? "See Results 🏆"
+      : "Next Question ➜";
+
+  $("nextBtn").classList.remove("hidden");
+}
+
+function nextQuestion() {
+  current++;
+
+  if (current < quiz.length) {
+    renderQuestion();
+  } else {
+    finishGame();
+  }
+}
+
+function finishGame() {
+  clearInterval(timerId);
+  showScreen("result");
+
+  const max = quiz.length * 10;
+  const percentage = Math.round(points / max * 100);
+
+  $("finalScore").textContent = points + " / " + max;
+  $("accuracy").textContent =
+    "Score percentage: " + percentage + "%";
+
+  $("resultTitle").textContent =
+    percentage >= 80 ? "Amazing! 🏆" :
+    percentage >= 50 ? "Good Job! 🎉" :
+    "Keep Practising! 💪";
+
+  $("resultMessage").textContent =
+    "You answered " +
+    history.filter(h => h.wasCorrect).length +
+    " out of " + quiz.length + " questions correctly.";
+
+  const best = Number(localStorage.getItem("brainBest") || 0);
+
+  if (points > best) {
+    localStorage.setItem("brainBest", points);
+  }
+
+  updateBestScore();
+}
+
+function showReview() {
+  const review = $("review");
+  review.innerHTML = "";
+  review.classList.remove("hidden");
+
+  history.forEach((item, index) => {
+    const div = document.createElement("div");
+    div.className = "review-item";
+
+    const title = document.createElement("strong");
+    title.textContent = (index + 1) + ". " + item.question;
+
+    const yourAnswer = document.createElement("p");
+    yourAnswer.textContent = "Your answer: " + item.chosen;
+
+    const correctAnswer = document.createElement("p");
+    correctAnswer.textContent = "Correct answer: " + item.correct;
+
+    div.append(title, yourAnswer, correctAnswer);
+    review.appendChild(div);
+  });
+}
+
+function goHome() {
+  clearInterval(timerId);
+  showScreen("home");
+  updateBestScore();
+}
+
+updateBestScore();
+</script>
+  
+<div id="leaderboard">
+  <h2>🏆 Leaderboard</h2>
+  <input id="playerName" placeholder="Apna naam likho">
+  <button onclick="saveScore()">Save Score</button>
+  <ol id="leaderboardList"></ol>
+</div>
+
+</body>
+</html>
